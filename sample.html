@@ -1,0 +1,141 @@
+<html>
+<style>
+body {
+	font-family: Helvetica, sans-serif;
+	margin: 0;
+}
+.container {
+	position: relative;
+}
+.box {
+	position: absolute;
+	border: 1px solid #888;
+	border-radius: 5px;
+	background: #fff;
+	width: 180px;
+}
+.box .header {
+	font-weight: bold;
+	border-radius: 5px 5px 0 0;
+	padding: 5px;
+	background: #dee;
+}
+.box .prop {
+	padding: 5px;
+	border-top: 1px solid #ddd;
+}
+</style>
+<body>
+
+<svg id="svgview" width="1200" height="800">
+	<foreignobject x="50" y="20">
+		<div class="container"></div>
+	</foreignobject>
+</svg>
+
+<script src="jquery-3.1.1.min.js"></script>
+<script src="jquery-ui.min.js"></script>
+<script src="entities.js"></script>
+<script>
+var pos = 0;
+for (var ename in entity) {
+	var box = $('<div>', {
+		id: ename,
+		class: "box",
+		css: {
+			top: "100px",
+			left: pos + "px"
+		}
+	})
+	pos += 150;
+
+	box.append($("<div>", { class: "header", text: ename }));
+	entity[ename].forEach(function(e) {
+		box.append($("<div>", { id: ename + "." + e, class: "prop", text: e }));
+	});
+	box.appendTo($(".container"));
+}
+
+
+function drawPath(ent1, ent2) {
+	var x = ent1.getBoundingClientRect();
+	var x2 = ent2.getBoundingClientRect();
+
+	var zz = [
+		[x.right, x2.right],
+		[x.right, x2.left],
+		[x.left, x2.right],
+		[x.left, x2.left]
+	];
+	var mini = 0;
+	var last = Math.abs(zz[0][0] - zz[0][1]);
+	for (var i=1; i<zz.length; i++) {
+		var d = Math.abs(zz[i][0] - zz[i][1]);
+		if (last > d) {
+			last = d;
+			mini = i;
+		}
+	}
+
+	var p1 = {
+		x: zz[mini][0],
+		y: x.top + (x.bottom - x.top) / 2
+	}
+	var p2 = {
+		x: zz[mini][1],
+		y: x2.top + (x2.bottom - x2.top) / 2
+	}
+	var min = {
+		x: Math.min(p1.x, p2.x),
+		y: Math.min(p1.y, p2.y)
+	}
+	var delta = {
+		x: Math.abs(p2.x - p1.x),
+		y: Math.abs(p2.y - p1.y)
+	}
+	var control = {
+		x: min.x + delta.x/2,
+		y: min.y + delta.y/2
+	}
+	if (delta.x < 30) {
+		control.x = control.x + 40;
+	}
+	if (delta.y > 100) {
+		control.y = control.y * 0.75;
+	}
+
+	var relationPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+	relationPath.setAttribute('d', 'M' + p1.x + "," + p1.y + " Q" + control.x + "," + control.y + " " + p2.x + "," + p2.y);
+    relationPath.setAttribute('stroke', 'red');
+    relationPath.setAttribute('stroke-width', 1);
+    relationPath.setAttribute('fill', "none");
+    relationPath.setAttribute('stroke-dasharray', '6 6');
+	document.getElementById('svgview').appendChild(relationPath);
+}
+
+function draw() {
+	relations.forEach(function(e) {
+		var e1 = document.getElementById(e[0]);
+		var e2 = document.getElementById(e[1]);
+		console.log(e[0] + " - " + e[1]);
+		drawPath(e1, e2);
+	});
+}
+
+setTimeout(function() {
+	$('.box').draggable({
+		grid: [ 10, 10 ],
+		drag: function() {
+			$("#svgview path").remove();
+			draw();
+		},
+		stop : function (){
+			$("#svgview path").remove();
+			draw();
+		}
+	});
+	draw();
+}, 0);
+</script>
+</body>
+</html>
